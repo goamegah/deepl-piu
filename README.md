@@ -42,7 +42,7 @@ X, y = preprocessor.fit_transform(train_df)
 Les modèles sont définis dans le répertoire models. Vous pouvez entraîner un modèle en utilisant le script principal main.py.
 
 ```bash
-python piu/main.py
+python piu/main.py --wandb_entity <your wandb entity name>
 ```
 
 ### Soumission des Prédictions
