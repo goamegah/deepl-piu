@@ -16,6 +16,11 @@ pip install -r requirements.txt
 ```
 
 ## Utilisation
+### Dataset
+Les datasets utilisés dans ce projet proviennent de Kaggle. Vous pouvez les télécharger en suivant le lien ci-dessous :
+
+[Kaggle](https://www.kaggle.com/competitions/child-mind-institute-problematic-internet-use/data)
+
 ### Prétraitement des Données
 Le prétraitement des données est géré par la classe DataPreprocessor. Voici un exemple d'utilisation :
 
