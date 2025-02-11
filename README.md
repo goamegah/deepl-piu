@@ -3,7 +3,7 @@
 1. Clonez le dépôt :
 
 ```sh
-git clone <URL_DU_DEPOT>
+git clone https://github.com/goamegah/deepl-piu
 cd deepl-piu
 ```
 
@@ -51,10 +51,10 @@ python piu/submission.py
 - checkpoints : Contient les checkpoints des modèles entraînés.
 - dataset : Contient les fichiers de données.
 - piu : Contient le code source du projet.
-    - data/ : Contient les scripts de prétraitement des données.
-    - models/ : Contient les définitions des modèles.
-    - notebook/ : Contient les notebooks Jupyter pour l'exploration des données.
-    - utils/ : Contient les fonctions utilitaires.
-    - wandb : Contient les configurations pour Weights & Biases.
+    - `data/` : Contient les scripts de prétraitement des données.
+    - `models/` : Contient les définitions des modèles.
+    - `notebook/` : Contient les notebooks Jupyter pour l'exploration des données.
+    - `utils/` : Contient les fonctions utilitaires.
+    - `wandb/` : Contient les configurations pour Weights & Biases.
 - requirements.txt : Liste des dépendances du projet.
 - setup.py : Script d'installation du projet.
