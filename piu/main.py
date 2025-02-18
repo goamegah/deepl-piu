@@ -120,7 +120,11 @@ def main(args):
         checkpoint_path=CHECKPOINT_DIR
     )
     
-    test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(model, test_loader, nn.CrossEntropyLoss())
+    test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(
+        model, 
+        test_loader, 
+        nn.CrossEntropyLoss()
+    )
 
     print(f"\n **Résultats sur le test set**:")
     print(f" * Perte : {test_loss:.4f}")
