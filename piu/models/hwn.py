@@ -14,18 +14,14 @@ class HighwayNet(nn.Module):
         super(HighwayNet, self).__init__()
         self.num_layers = num_layers
 
-        # Projeter input_size vers hidden_size si nécessaire
         self.input_projection = nn.Linear(input_size, hidden_size) if input_size != hidden_size else nn.Identity()
 
-        # Création des couches
         self.layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
         self.transform_gates = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
 
-        # Normalisation et Dropout
         self.batch_norms = nn.ModuleList([nn.BatchNorm1d(hidden_size) for _ in range(num_layers)])
         self.dropouts = nn.ModuleList([nn.Dropout(dropout_rate) for _ in range(num_layers)])
 
-        # Couche de sortie pour classification
         self.output_layer = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
