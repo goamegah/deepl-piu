@@ -17,7 +17,7 @@ import wandb
 def main(args):
     wandb.init(
         project="Problematic Internet Use", 
-        name=f"mod={args.model_type}-act={args.activation}-opt={args.optimizer}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}",
+        name=f"mod={args.model_type}-act={args.activation}-opt={args.optim}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}",
         entity=args.wandb_entity,
         config=vars(args)
     )
@@ -62,7 +62,7 @@ def main(args):
     input_size = X_train.shape[1]
     num_classes = len(torch.unique(y_train))
 
-    if args.model_type == 'mlp':
+    if args.model == 'mlp':
         hidden_sizes = [8] 
         model = MultiLayerPerceptron(
             input_size=input_size,
@@ -75,7 +75,7 @@ def main(args):
         #     hidden_size=hidden_sizes[0],
         #     num_classes=num_classes
         # )
-    elif args.model_type == 'hwn':
+    elif args.model == 'hwn':
         model = HighwayNet(
             input_size=input_size,
             hidden_size=8,
@@ -84,7 +84,7 @@ def main(args):
             dropout_rate=0.3
         )
     else:
-        raise ValueError(f"/!\ Erreur : Modèle {args.model_type} non reconnu")
+        raise ValueError(f"/!\ Erreur : Modèle {args.model} non reconnu")
 
     class_weights_tensor = class_weights.to(torch.float32) if class_weights is not None else None
 
@@ -94,28 +94,28 @@ def main(args):
     else:
         criterion = nn.CrossEntropyLoss()
 
-    if args.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    elif args.optimizer == 'sgd':
-        optimizer = optim.SGD(model.parameters(), lr=args.lr)
-    elif args.optimizer == 'radam':
-        optimizer = optim.RAdam(model.parameters(), lr=args.lr)
-    elif args.optimizer == 'rmsprop':
-        optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
+    if args.optim == 'adam':
+        optim = optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optim == 'sgd':
+        optim = optim.SGD(model.parameters(), lr=args.lr)
+    elif args.optim == 'radam':
+        optim = optim.RAdam(model.parameters(), lr=args.lr)
+    elif args.optim == 'rmsprop':
+        optim = optim.RMSprop(model.parameters(), lr=args.lr)
     else:
-        raise ValueError(f" /!\ Erreur : Optimiseur {args.optimizer} non reconnu")
+        raise ValueError(f" /!\ Erreur : Optimiseur {args.optim} non reconnu")
 
     # create folder to save model based on the experiment
-    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model_type}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}"
+    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
     train_model(
         model=model, 
         train_loader=train_loader, 
         test_loader=test_loader,
-        optimizer=optimizer,
+        optimizer=optim,
         criterion=criterion,   
-        num_epochs=args.num_epochs, 
+        num_epochs=args.epochs, 
         patience=args.patience,
         checkpoint_path=CHECKPOINT_DIR
     )
@@ -156,12 +156,12 @@ if __name__ == "__main__":
                         help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
     parser.add_argument('--model_type', type=str, default='hwn', choices=['mlp', 'hwn'], help="Type of model to train")
-    parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], 
+    parser.add_argument('--optim', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], 
                         help="Type of optimizer to use")
-    parser.add_argument('--activation', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], 
+    parser.add_argument('--act', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], 
                         help="Activation function for hidden layers")
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for training and testing")
-    parser.add_argument('--num_epochs', type=int, default=300, help="Number of training epochs")
+    parser.add_argument('--epochs', type=int, default=300, help="Number of training epochs")
     parser.add_argument('--lr', type=float, default=0.0001, help="Learning rate for optimization") 
     parser.add_argument('--wandb_entity', type=str, required=True, help="Your WandB entity")
     parser.add_argument('--patience', type=int, default=15, help="Number of epochs to wait for early stopping")
