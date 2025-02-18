@@ -31,22 +31,14 @@ def train_model(
         model: torch.nn.Module, 
         train_loader: torch.utils.data.DataLoader, 
         test_loader: torch.utils.data.DataLoader, 
+        optimizer: torch.optim.Optimizer,
+        criterion: torch.nn.Module,
         num_epochs: int=300, 
-        learning_rate: float=0.001, 
         patience: int=10,
         checkpoint_path: str=CHECKPOINT_PATH,
-        class_weights=None, 
 ) -> None:
     """Entraîne le modèle avec early stopping et régularisation L2."""
-
-    # ✅ Vérification si class_weights est None
-    if class_weights is not None:
-        class_weights = class_weights.to(torch.float32)  # Convertir en float32 pour éviter les erreurs
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-    else:
-        criterion = nn.CrossEntropyLoss()  # Pas de pondération
-
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)  # 🔥 Ajout du weight decay
+    model.train()
     early_stopping = EarlyStopping(patience=patience, path=f'{checkpoint_path}/best_model.pth')
 
     for epoch in range(num_epochs):
@@ -56,25 +48,25 @@ def train_model(
         total = 0
 
         for inputs, labels in train_loader:
-            optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
             total_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
 
-        print(f"total: {total}")
-        train_accuracy = correct / total if total > 0 else 0.0  # ✅ Évite division par zéro
-        train_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0  # ✅ Évite erreur si vide
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        # 📌 Ajout de la validation après chaque époque
+        print(f"total: {total}")
+        train_accuracy = correct / total if total > 0 else 0.0
+        train_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
+
+        # Ajout de la validation après chaque époque
         val_loss, val_accuracy, val_precision, val_recall, val_f1 = evaluate_model(model, test_loader, criterion)
 
-        # 📊 Logger sur WandB
+        # Logger sur WandB
         wandb.log({
             'train/loss': train_loss, 
             'train/accuracy': train_accuracy,
@@ -88,7 +80,7 @@ def train_model(
 
         print(f'🔄 Epoch {epoch+1}/{num_epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_accuracy:.4f} | Eval Loss: {val_loss:.4f} | Eval Acc: {val_accuracy:.4f}')
 
-        # 🔥 Vérifier si on doit stopper l'entraînement
+        # Vérifier si on doit stopper l'entraînement
         if early_stopping(val_loss, model):
             break  # Stop training si early stopping activé
 
@@ -112,11 +104,11 @@ def evaluate_model(model, test_loader, criterion):
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # ✅ Gestion des cas où test_loader est vide
+    # Gestion des cas où test_loader est vide
     if len(all_preds) == 0 or len(all_labels) == 0:
         return 0.0, 0.0, 0.0, 0.0, 0.0
 
-    # ✅ Évite les warnings de division par zéro avec `zero_division=1`
+    # Évite les warnings de division par zéro avec `zero_division=1`
     accuracy = accuracy_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
     precision = precision_score(all_labels, all_preds, average='weighted', zero_division=1)
     recall = recall_score(all_labels, all_preds, average='weighted', zero_division=1)

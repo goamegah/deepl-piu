@@ -15,7 +15,6 @@ from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 import joblib
 
-
 class CorrelationThreshold(BaseEstimator, TransformerMixin):
     """ Supprime les features ayant une forte corrélation (> threshold) """
     def __init__(self, threshold=0.9):
@@ -34,27 +33,37 @@ class CorrelationThreshold(BaseEstimator, TransformerMixin):
 
 
 class DataPreprocessor:
-    def __init__(self, target_column='sii', fts=None, k_best=None, imp='median', drop_missing_target=True, correlation_threshold=0.9, imb=None):
-        """
-        balance_strategy : 'class_weight', 'smote', 'random_over', 'random_under', ou None
-        """
+    def __init__(self, target_column='sii', feature_selection_method=None, k_best=None, 
+                 imputation_method='median', drop_missing_target=True, correlation_threshold=0.9, 
+                 balance_strategy=None):
         self.target_column = target_column
-        self.feature_selection_method = fts
+        self.feature_selection_method = feature_selection_method
         self.k_best = k_best
-        self.imputation_method = imp
+        self.imputation_method = imputation_method
         self.drop_missing_target = drop_missing_target
         self.correlation_threshold = correlation_threshold
-        self.balance_strategy = imb
+        self.balance_strategy = balance_strategy
         self.num_features = []
         self.cat_features = []
         self.selected_features_ = None
         self.pipeline = None
         self.selector = None
         self.num_classes = None
+        self.num_imputer = None
+        self.cat_imputer = None
+
+    def _validate_and_fix(self, X):
+        if np.isnan(X).sum() > 0:
+            print(f"🚨 NaN détectés, remplacement par 0")
+            X = np.nan_to_num(X, nan=0.0)
+
+        if np.isinf(X).sum() > 0:
+            print(f"🚨 Valeurs infinies détectées, correction en cours...")
+            X = np.clip(X, -1e6, 1e6)
+
+        return X
 
     def fit_transform(self, df):
-        """ Entraîne le pipeline de preprocessing et transforme les données d'entraînement """
-
         if self.drop_missing_target:
             df = df.dropna(subset=[self.target_column])
 
@@ -70,14 +79,19 @@ class DataPreprocessor:
         if y is not None:
             self.num_classes = len(np.unique(y))
 
+        X[self.num_features] = self.num_imputer.fit_transform(X[self.num_features])
+        X[self.cat_features] = self.cat_imputer.fit_transform(X[self.cat_features])
+
         X_transformed = self.pipeline.fit_transform(X)
 
         if self.feature_selection_method:
             X_transformed = self.feature_selection(X_transformed, y)
-        # save the selected features
 
         X_transformed, y = self.handle_class_imbalance(X_transformed, y)
+        X_transformed = self._validate_and_fix(X_transformed)
+
         class_weights = self.compute_class_weights(y) if self.balance_strategy == 'class_weight' else None
+
         return torch.tensor(X_transformed, dtype=torch.float32), torch.tensor(y.values, dtype=torch.long) if y is not None else None, class_weights
 
     def transform(self, df):
@@ -113,57 +127,7 @@ class DataPreprocessor:
             X_transformed = X_transformed[:, self.selected_features_]
 
         return torch.tensor(X_transformed, dtype=torch.float32)
-
-
-    def identify_features(self):
-        """ Identifie les variables numériques et catégoriques """
-        self.num_features = self.df_train.select_dtypes(include=[np.number]).columns.tolist()
-        self.cat_features = self.df_train.select_dtypes(exclude=[np.number]).columns.tolist()
-
-        if self.target_column in self.num_features:
-            self.num_features.remove(self.target_column)
-        if self.target_column in self.cat_features:
-            self.cat_features.remove(self.target_column)
-
-    def handle_missing_values(self):
-        """ Définition de l'imputation des valeurs manquantes """
-        if self.imputation_method == 'median':
-            num_imputer = SimpleImputer(strategy='median')
-        elif self.imputation_method == 'mean':
-            num_imputer = SimpleImputer(strategy='mean')
-        elif self.imputation_method == 'knn':
-            num_imputer = KNNImputer(n_neighbors=5)
-        else:
-            raise ValueError("Méthode d'imputation non supportée")
-    
-        cat_imputer = SimpleImputer(strategy='most_frequent')
-    
-        # ✅ Sauvegarde des imputeurs pour une utilisation en inférence
-        self.num_imputer = num_imputer
-        self.cat_imputer = cat_imputer
-    
-        return num_imputer, cat_imputer
-
-
-    def feature_engineering(self):
-        """ Création du pipeline de preprocessing """
-        num_imputer, cat_imputer = self.handle_missing_values()
-
-        num_pipeline = Pipeline([
-            ('imputer', num_imputer),
-            ('scaler', StandardScaler())
-        ])
-
-        cat_pipeline = Pipeline([
-            ('imputer', cat_imputer),
-            ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
-        ])
-
-        self.pipeline = ColumnTransformer([
-            ('num', num_pipeline, self.num_features),
-            ('cat', cat_pipeline, self.cat_features)
-        ])
-
+        
     def feature_selection(self, X, y):
         """ 
         Sélection des features si activée 
@@ -199,8 +163,55 @@ class DataPreprocessor:
 
         return self.selector.fit_transform(X, y) if self.selector else X
 
+    def identify_features(self):
+        """ Identifie les variables numériques et catégoriques """
+        self.num_features = self.df_train.select_dtypes(include=[np.number]).columns.tolist()
+        self.cat_features = self.df_train.select_dtypes(exclude=[np.number]).columns.tolist()
+
+        if self.target_column in self.num_features:
+            self.num_features.remove(self.target_column)
+        if self.target_column in self.cat_features:
+            self.cat_features.remove(self.target_column)
+    
+    def handle_missing_values(self):
+        """ Définition de l'imputation des valeurs manquantes """
+        if self.imputation_method == 'median':
+            num_imputer = SimpleImputer(strategy='median')
+        elif self.imputation_method == 'mean':
+            num_imputer = SimpleImputer(strategy='mean')
+        elif self.imputation_method == 'knn':
+            num_imputer = KNNImputer(n_neighbors=5)
+        else:
+            raise ValueError("Méthode d'imputation non supportée")
+    
+        cat_imputer = SimpleImputer(strategy='most_frequent')
+    
+        # ✅ Sauvegarde des imputeurs pour une utilisation en inférence
+        self.num_imputer = num_imputer
+        self.cat_imputer = cat_imputer
+    
+        return num_imputer, cat_imputer
+
+    def feature_engineering(self):
+        """ Création du pipeline de preprocessing """
+        num_imputer, cat_imputer = self.handle_missing_values()
+
+        num_pipeline = Pipeline([
+            ('imputer', num_imputer),
+            ('scaler', StandardScaler())
+        ])
+
+        cat_pipeline = Pipeline([
+            ('imputer', cat_imputer),
+            ('encoder', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+        ])
+
+        self.pipeline = ColumnTransformer([
+            ('num', num_pipeline, self.num_features),
+            ('cat', cat_pipeline, self.cat_features)
+        ])
+
     def handle_class_imbalance(self, X, y):
-        """ Applique des techniques de gestion du déséquilibre des classes """
         if self.balance_strategy == 'smote':
             smote = SMOTE(sampling_strategy='auto', random_state=42)
             X, y = smote.fit_resample(X, y)
@@ -211,11 +222,10 @@ class DataPreprocessor:
             under_sampler = RandomUnderSampler(sampling_strategy='auto', random_state=42)
             X, y = under_sampler.fit_resample(X, y)
         return X, y
+    
 
     def compute_class_weights(self, y):
-        """ Calcule les poids de classe """
-        classes = np.unique(y)
-        class_weights = compute_class_weight(class_weight='balanced', classes=classes, y=y)
+        class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y)
         return torch.tensor(class_weights, dtype=torch.float32)
 
     def save(self, path):

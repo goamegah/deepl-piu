@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import joblib
 import argparse
-from piu.models.nn import MultiClassNN  # ✅ Vérifie que ton modèle est bien importé
+from piu.models.mlp import MultiClassNN  # ✅ Vérifie que ton modèle est bien importé
+from piu.models.hwn import HighwayNet  # ✅ Vérifie que ton modèle est bien importé
 from piu.definitions import * # ✅ Vérifie les chemins
 
 CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mlp-fs-correlation_threshold-balance-class_weight"  # ✅ Vérifie le chemin du modèle
@@ -11,10 +12,13 @@ MODEL_PATH = f"{CHECKPOINT_DIR}/best_model.pth"  # ✅ Vérifie le chemin du mod
 PREPROCESSOR_PATH = f"{CHECKPOINT_DIR}/preprocessor.pkl"  # ✅ Vérifie le chemin du préprocesseur
 DATA_PATH = f"{TEST_DATA_PATH}"  # ✅ Vérifie le chemin des données de test
 
-def load_model(model_path, input_size, hidden_size, num_classes):
+def load_model(model_path, input_size, hidden_size, num_classes, num_layers, type="mlp"):
     """Charge un modèle PyTorch entraîné."""
-    model = MultiClassNN(input_size, hidden_size, num_classes)
-    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+    if type == "mlp":
+        model = MultiClassNN(input_size, hidden_size, num_classes)
+    elif type == "hwn":
+        model = HighwayNet(input_size, hidden_size, num_classes, num_layers)
+    model.load_state_dict(torch.load(model_path, weights_only=True, map_location=torch.device('cpu')))
     model.eval()
     return model
 
@@ -101,8 +105,14 @@ if __name__ == "__main__":
     print(f"✅ Features alignées avec succès : {input_size} (doit être identique au training)")
 
     # 🔥 Charger le modèle entraîné
-    model = load_model(f"{CHECKPOINT_DIR}/best_model.pth", input_size, args.hidden_size, args.num_classes)
-
+    model = load_model(
+        model_path=MODEL_PATH,
+        input_size=input_size,
+        hidden_size=args.hidden_size,
+        num_classes=args.num_classes,
+        num_layers=3,  # 🔥 Vérifie le nombre de couches pour HWN
+        type="mlp"  # 🔥 Change pour HWN si c'est le modèle utilisé
+    )
     # 🔥 Faire des prédictions par lots
     predictions, probabilities = batch_predict(model, X, batch_size=args.batch_size)
 
