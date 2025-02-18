@@ -19,10 +19,9 @@ def main(args):
         project="Problematic Internet Use", 
         name=f"mod={args.model_type}-act={args.activation}-opt={args.optimizer}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}",
         entity=args.wandb_entity,
-        config=vars(args)  # Stocker directement tous les arguments dans wandb
+        config=vars(args)
     )
     
-    # Charger les données
     train_df = pd.read_csv(f'{DATASET_PATH}/train.csv')
     test_df = pd.read_csv(f'{DATASET_PATH}/test.csv')
 
@@ -36,7 +35,6 @@ def main(args):
     # Garde uniquement les colonnes communes + la cible
     train_df = train_df[common_columns].drop(columns=['id'], errors='ignore')
 
-    # Initialisation du préprocesseur
     preprocessor = DataPreprocessor(
         target_column=args.target_column,
         fts=args.fts,
@@ -48,7 +46,6 @@ def main(args):
     
     X, y, class_weights = preprocessor.fit_transform(train_df)
 
-    # Vérification du nombre de features après transformation
     print(f" * Nombre de features après transformation : {X.shape[1]}")
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -57,15 +54,11 @@ def main(args):
 
     print(f" * Répartition des classes dans train : {np.bincount(y_train.numpy())}")
     print(f" * Répartition des classes dans test : {np.bincount(y_test.numpy())}")
-
-
     print(f" * Taille du train set: {len(y_train)}, Taille du test set: {len(y_test)}")
 
-    # Création des DataLoaders
     train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=args.batch_size, shuffle=False)
     
-    # Initialisation du modèle
     input_size = X_train.shape[1]
     num_classes = len(torch.unique(y_train))
 
@@ -127,7 +120,6 @@ def main(args):
         checkpoint_path=CHECKPOINT_DIR
     )
     
-    # Évaluation du modèle
     test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(model, test_loader, nn.CrossEntropyLoss())
 
     print(f"\n **Résultats sur le test set**:")
