@@ -17,19 +17,18 @@ class MultiClassNN(nn.Module):
 class MultiLayerPerceptron(nn.Module):
     def __init__(self, input_size, hidden_sizes, num_classes, dropout_rate=0.3):
         """
-        Modèle MLP flexible permettant de définir un nombre de neurones variable par couche.
+        Modèle MLP
 
         :param input_size: Nombre de features en entrée
         :param hidden_sizes: Liste contenant le nombre de neurones par couche cachée (ex: [128, 64, 32])
         :param num_classes: Nombre de classes en sortie
-        :param dropout_rate: Taux de dropout pour éviter l'overfitting
+        :param dropout_rate: Taux de dropout 
         """
         super(MultiLayerPerceptron, self).__init__()
 
         layers = []
         prev_size = input_size
 
-        # ✅ Ajout des couches cachées
         for hidden_size in hidden_sizes:
             layers.append(nn.Linear(prev_size, hidden_size))
             layers.append(nn.Tanh())

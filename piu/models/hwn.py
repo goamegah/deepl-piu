@@ -14,30 +14,30 @@ class HighwayNet(nn.Module):
         super(HighwayNet, self).__init__()
         self.num_layers = num_layers
 
-        # 🔥 Projeter input_size vers hidden_size si nécessaire
+        # Projeter input_size vers hidden_size si nécessaire
         self.input_projection = nn.Linear(input_size, hidden_size) if input_size != hidden_size else nn.Identity()
 
-        # 🔥 Création des couches
+        # Création des couches
         self.layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
         self.transform_gates = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
 
-        # 🔥 Normalisation et Dropout
+        # Normalisation et Dropout
         self.batch_norms = nn.ModuleList([nn.BatchNorm1d(hidden_size) for _ in range(num_layers)])
         self.dropouts = nn.ModuleList([nn.Dropout(dropout_rate) for _ in range(num_layers)])
 
-        # 🔥 Couche de sortie pour classification
+        # Couche de sortie pour classification
         self.output_layer = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
-        x = self.input_projection(x)  # 🔥 Ajustement si input_size ≠ hidden_size
+        x = self.input_projection(x)  # Ajustement si input_size ≠ hidden_size
 
         for i in range(self.num_layers):
-            h = self.layers[i](x)  # Transformation principale
-            h = self.batch_norms[i](h)  # Normalisation pour stabiliser l'entraînement
-            h = F.relu(h)  # Activation non linéaire
-            h = self.dropouts[i](h)  # Dropout pour éviter l'overfitting
+            h = self.layers[i](x)
+            h = self.batch_norms[i](h)
+            h = F.relu(h)
+            h = self.dropouts[i](h)
 
             t = torch.sigmoid(self.transform_gates[i](x))  # Gate de contrôle
-            x = t * h + (1 - t) * x  # 🔥 Fusion entre transformation et identité
+            x = t * h + (1 - t) * x  # Fusion entre transformation et identité
 
-        return self.output_layer(x)  # ✅ Couche finale pour classification
+        return self.output_layer(x)

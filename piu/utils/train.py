@@ -7,7 +7,7 @@ import numpy as np
 from definitions import *
 
 class EarlyStopping:
-    """Arrête l'entraînement si la perte de validation ne s'améliore pas après un certain nombre d'epochs."""
+
     def __init__(self, patience=10, delta=0.001, path='best_model.pth'):
         self.patience = patience
         self.delta = delta
@@ -19,12 +19,12 @@ class EarlyStopping:
         if val_loss < self.best_loss - self.delta:
             self.best_loss = val_loss
             self.counter = 0
-            torch.save(model.state_dict(), self.path)  # Sauvegarde le meilleur modèle
+            torch.save(model.state_dict(), self.path)
         else:
             self.counter += 1
             if self.counter >= self.patience:
-                print("⏳ Early stopping activé !")
-                return True  # Stop training
+                print("*Early stopping activé !")
+                return True 
         return False  # Continue training
 
 def train_model(
@@ -37,7 +37,7 @@ def train_model(
         patience: int=10,
         checkpoint_path: str=CHECKPOINT_PATH,
 ) -> None:
-    """Entraîne le modèle avec early stopping et régularisation L2."""
+
     model.train()
     early_stopping = EarlyStopping(patience=patience, path=f'{checkpoint_path}/best_model.pth')
 
@@ -63,10 +63,8 @@ def train_model(
         train_accuracy = correct / total if total > 0 else 0.0
         train_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
 
-        # Ajout de la validation après chaque époque
         val_loss, val_accuracy, val_precision, val_recall, val_f1 = evaluate_model(model, test_loader, criterion)
 
-        # Logger sur WandB
         wandb.log({
             'train/loss': train_loss, 
             'train/accuracy': train_accuracy,
@@ -80,13 +78,12 @@ def train_model(
 
         print(f'🔄 Epoch {epoch+1}/{num_epochs} | Train Loss: {train_loss:.4f} | Train Acc: {train_accuracy:.4f} | Eval Loss: {val_loss:.4f} | Eval Acc: {val_accuracy:.4f}')
 
-        # Vérifier si on doit stopper l'entraînement
         if early_stopping(val_loss, model):
-            break  # Stop training si early stopping activé
+            break
 
     # Charger le meilleur modèle sauvegardé
     model.load_state_dict(torch.load(f'{checkpoint_path}/best_model.pth'))
-    print("✅ Meilleur modèle chargé après Early Stopping.")
+    print("*Meilleur modèle chargé après Early Stopping.")
 
 def evaluate_model(model, test_loader, criterion):
     """Évalue le modèle sur le test set et retourne les métriques."""
@@ -108,7 +105,6 @@ def evaluate_model(model, test_loader, criterion):
     if len(all_preds) == 0 or len(all_labels) == 0:
         return 0.0, 0.0, 0.0, 0.0, 0.0
 
-    # Évite les warnings de division par zéro avec `zero_division=1`
     accuracy = accuracy_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.0
     precision = precision_score(all_labels, all_preds, average='weighted', zero_division=1)
     recall = recall_score(all_labels, all_preds, average='weighted', zero_division=1)

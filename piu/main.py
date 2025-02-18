@@ -29,9 +29,9 @@ def main(args):
     # Vérifier les colonnes communes entre train et test
     common_columns = list(set(train_df.columns) & set(test_df.columns))
     if args.target_column in train_df.columns:
-        common_columns.append(args.target_column)  # ✅ S'assurer que la colonne cible est présente dans train_df
+        common_columns.append(args.target_column)  # S'assurer que la colonne cible est présente dans train_df
 
-    print(f"✅ Colonnes communes utilisées : {common_columns}")
+    print(f" * Colonnes communes utilisées : {common_columns}")
 
     # Garde uniquement les colonnes communes + la cible
     train_df = train_df[common_columns].drop(columns=['id'], errors='ignore')
@@ -49,18 +49,17 @@ def main(args):
     X, y, class_weights = preprocessor.fit_transform(train_df)
 
     # Vérification du nombre de features après transformation
-    print(f"✅ Nombre de features après transformation : {X.shape[1]}")
+    print(f" * Nombre de features après transformation : {X.shape[1]}")
 
-    # ✅ Stratified Split pour conserver la répartition des classes
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=(1 - args.train_split), stratify=y, random_state=42
     )
 
-    print(f"✅ Répartition des classes dans train : {np.bincount(y_train.numpy())}")
-    print(f"✅ Répartition des classes dans test : {np.bincount(y_test.numpy())}")
+    print(f" * Répartition des classes dans train : {np.bincount(y_train.numpy())}")
+    print(f" * Répartition des classes dans test : {np.bincount(y_test.numpy())}")
 
 
-    print(f"✅ Taille du train set: {len(y_train)}, Taille du test set: {len(y_test)}")
+    print(f" * Taille du train set: {len(y_train)}, Taille du test set: {len(y_test)}")
 
     # Création des DataLoaders
     train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=args.batch_size, shuffle=True)
@@ -92,7 +91,7 @@ def main(args):
             dropout_rate=0.3
         )
     else:
-        raise ValueError(f"⚠️ Erreur : Modèle {args.model_type} non reconnu")
+        raise ValueError(f"/!\ Erreur : Modèle {args.model_type} non reconnu")
 
     class_weights_tensor = class_weights.to(torch.float32) if class_weights is not None else None
 
@@ -111,13 +110,12 @@ def main(args):
     elif args.optimizer == 'rmsprop':
         optimizer = torch.optim.RMSprop(model.parameters(), lr=args.lr)
     else:
-        raise ValueError(f"⚠️ Erreur : Optimiseur {args.optimizer} non reconnu")
+        raise ValueError(f" /!\ Erreur : Optimiseur {args.optimizer} non reconnu")
 
     # create folder to save model based on the experiment
     CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model_type}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
-    # Entraînement avec Early Stopping
     train_model(
         model=model, 
         train_loader=train_loader, 
@@ -132,22 +130,19 @@ def main(args):
     # Évaluation du modèle
     test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(model, test_loader, nn.CrossEntropyLoss())
 
-    print(f"\n📊 **Résultats sur le test set**:")
-    print(f"🔹 Perte : {test_loss:.4f}")
-    print(f"🔹 Accuracy : {test_accuracy:.4f}")
-    print(f"🔹 Precision : {test_precision:.4f}")
-    print(f"🔹 Recall : {test_recall:.4f}")
-    print(f"🔹 F1-score : {test_f1:.4f}")
+    print(f"\n **Résultats sur le test set**:")
+    print(f" * Perte : {test_loss:.4f}")
+    print(f" * Accuracy : {test_accuracy:.4f}")
+    print(f" * Precision : {test_precision:.4f}")
+    print(f" * Recall : {test_recall:.4f}")
+    print(f" * F1-score : {test_f1:.4f}")
 
-    # Sauvegarde du préprocesseur
     joblib.dump(preprocessor, f"{CHECKPOINT_DIR}/preprocessor.pkl")
 
-    # Sauvegarde des arguments d'entraînement pour la reproductibilité
     joblib.dump(args, f"{CHECKPOINT_DIR}/train_args.pkl")
 
-    print(f"\n✅ Modèle et préprocesseur sauvegardés dans `{CHECKPOINT_DIR}`")
+    print(f"\n ... Modèle et préprocesseur sauvegardés dans `{CHECKPOINT_DIR}`")
 
-    # Fin du logging avec WandB
     wandb.finish()
 
 if __name__ == "__main__":
