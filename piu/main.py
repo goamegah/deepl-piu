@@ -2,17 +2,17 @@ import joblib
 import argparse
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import wandb
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 from piu.data.data_preprocessor import DataPreprocessor
 from piu.models.mlp import MultiClassNN, MultiLayerPerceptron
 from piu.models.hwn import HighwayNet
 from piu.utils.train import train_model, evaluate_model
 from piu.definitions import *
+import wandb
 
 def main(args):
     wandb.init(
@@ -95,13 +95,13 @@ def main(args):
         criterion = nn.CrossEntropyLoss()
 
     if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        optimizer = optim.SGD(model.parameters(), lr=args.lr)
     elif args.optimizer == 'radam':
-        optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr)
+        optimizer = optim.RAdam(model.parameters(), lr=args.lr)
     elif args.optimizer == 'rmsprop':
-        optimizer = torch.optim.RMSprop(model.parameters(), lr=args.lr)
+        optimizer = optim.RMSprop(model.parameters(), lr=args.lr)
     else:
         raise ValueError(f" /!\ Erreur : Optimiseur {args.optimizer} non reconnu")
 
@@ -141,10 +141,12 @@ if __name__ == "__main__":
     
     # Ajout des arguments principaux
     parser.add_argument('--target_column', type=str, default='sii', help="Name of the target column")
-    parser.add_argument('--fts', type=str, default='lasso', 
-                        choices=['k_best', 'pca', 'f_classif', 'chi2', 'f_classif', 'logistic_regression', 
-                                 'lasso', 'variance_threshold', 'correlation_threshold', None], 
-                        help="Feature selection method")
+    parser.add_argument(
+        '--fts', type=str, default='lasso', 
+        choices=['k_best', 'pca', 'f_classif', 'chi2', 'f_classif', 'logistic_regression', 
+                 'lasso', 'variance_threshold', 'correlation_threshold', None],
+        help="Feature selection method"
+    )
     parser.add_argument('--k_best', type=int, default=20, help="Number of best features to select")
     parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
