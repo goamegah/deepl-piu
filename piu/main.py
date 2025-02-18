@@ -138,7 +138,6 @@ def main(args):
     print(f" * F1-score : {test_f1:.4f}")
 
     joblib.dump(preprocessor, f"{CHECKPOINT_DIR}/preprocessor.pkl")
-
     joblib.dump(args, f"{CHECKPOINT_DIR}/train_args.pkl")
 
     print(f"\n ... Modèle et préprocesseur sauvegardés dans `{CHECKPOINT_DIR}`")
