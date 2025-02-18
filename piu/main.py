@@ -148,11 +148,14 @@ if __name__ == "__main__":
         help="Feature selection method"
     )
     parser.add_argument('--k_best', type=int, default=20, help="Number of best features to select")
-    parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], help="Method for handling missing values")
+    parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], 
+                        help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
     parser.add_argument('--model_type', type=str, default='hwn', choices=['mlp', 'hwn'], help="Type of model to train")
-    parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], help="Type of optimizer to use")
-    parser.add_argument('--activation', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], help="Activation function for hidden layers")
+    parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], 
+                        help="Type of optimizer to use")
+    parser.add_argument('--activation', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], 
+                        help="Activation function for hidden layers")
     parser.add_argument('--batch_size', type=int, default=8, help="Batch size for training and testing")
     parser.add_argument('--num_epochs', type=int, default=300, help="Number of training epochs")
     parser.add_argument('--lr', type=float, default=0.0001, help="Learning rate for optimization") 
