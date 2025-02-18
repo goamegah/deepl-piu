@@ -17,7 +17,7 @@ import wandb
 def main(args):
     wandb.init(
         project="Problematic Internet Use", 
-        name=f"mod={args.model}-act={args.act}-opt={args.optim}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}",
+        name=f"mod={args.model}-act={args.act}-opt={args.optim}-lr={args.lr}-fts={args.fts}-k={args.k}-imb={args.imb}",
         entity=args.wandb_entity,
         config=vars(args)
     )
@@ -38,7 +38,7 @@ def main(args):
     preprocessor = DataPreprocessor(
         target_column=args.target_column,
         fts=args.fts,
-        k_best=args.k_best,
+        k_best=args.k,
         imp=args.imp,
         imb=args.imb,
         drop_missing_target=True
@@ -106,7 +106,7 @@ def main(args):
         raise ValueError(f" /!\ Erreur : Optimiseur {args.optim} non reconnu")
 
     # create folder to save model based on the experiment
-    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model}-lr={args.lr}-fts={args.fts}-k={args.k_best}-imb={args.imb}"
+    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model}-lr={args.lr}-fts={args.fts}-k={args.k}-imb={args.imb}"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
     train_model(
@@ -151,7 +151,7 @@ if __name__ == "__main__":
                  'lasso', 'variance_threshold', 'correlation_threshold', None],
         help="Feature selection method"
     )
-    parser.add_argument('--k_best', type=int, default=20, help="Number of best features to select")
+    parser.add_argument('--k', type=int, default=20, help="Number of best features to select")
     parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], 
                         help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
