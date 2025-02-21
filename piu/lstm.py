@@ -69,7 +69,7 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # 📂 Chargement des données
+    # Chargement des données
     train_parquet_dir = SERIES_TRAIN_DATA_PATH
     train_csv_path = TRAIN_DATA_PATH
 
@@ -78,13 +78,13 @@ def main():
             train_parquet_dir, train_csv_path, batch_size=args.batch_size, split="both", feature_selection=args.feature_selection
         )
 
-        # 📌 Déterminer les dimensions d'entrée dynamiquement
+        # Déterminer les dimensions d'entrée dynamiquement
         sample_X_seq, sample_X_static, _ = next(iter(train_loader))
         input_dim_seq = sample_X_seq.shape[-1]
         input_dim_static = sample_X_static.shape[-1]
         output_dim = len(torch.unique(torch.tensor([train_loader.dataset[i][2] for i in range(len(train_loader.dataset))])))
 
-        # 📌 Initialisation du modèle
+        # Initialisation du modèle
         model = LSTMWithTabular(
             input_dim_seq=input_dim_seq,
             hidden_dim=args.hidden_dim,
@@ -97,18 +97,18 @@ def main():
         optimizer = get_optimizer(model, args)
         scheduler = get_scheduler(optimizer, args)
 
-        # 📊 Suivi WandB
+        # Suivi WandB
         wandb.watch(model, log="all")
 
-        # 🔥 Entraînement
+        # Entraînement
         if args.mode == "train":
             train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, args)
 
-            # 💾 Sauvegarde du modèle
+            # Sauvegarde du modèle
             torch.save(model.state_dict(), args.save_path)
             print(f"✅ Modèle sauvegardé sous {args.save_path}")
 
-        # 📊 Évaluation
+        # Évaluation
         elif args.mode == "test":
             if not os.path.exists(args.save_path):
                 raise ValueError(f"❌ Modèle introuvable à {args.save_path}, assurez-vous de l'avoir entraîné.")
@@ -116,7 +116,7 @@ def main():
             model.load_state_dict(torch.load(args.save_path, map_location=device))
             evaluate(model, val_loader, criterion, device)
 
-    # 🔍 Mode inférence
+    # Mode inférence
     elif args.mode == "inference":
         if args.inference_id is None:
             raise ValueError("❌ L'ID pour l'inférence doit être spécifié avec --inference_id")
