@@ -5,8 +5,8 @@ class MultiClassNN(nn.Module):
         super(MultiClassNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            # nn.ReLU(),
-            nn.Tanh(),
+            nn.ReLU(),
+            # nn.Tanh(),
             nn.Linear(hidden_size, num_classes)
         )
 
@@ -31,10 +31,10 @@ class MultiLayerPerceptron(nn.Module):
 
         for hidden_size in hidden_sizes:
             layers.append(nn.Linear(prev_size, hidden_size))
-            layers.append(nn.Tanh())
-            # layers.append(nn.ReLU())
-            layers.append(nn.BatchNorm1d(hidden_size))
-            layers.append(nn.Dropout(dropout_rate))
+            # layers.append(nn.Tanh())
+            layers.append(nn.ReLU())
+            # layers.append(nn.BatchNorm1d(hidden_size))
+            # layers.append(nn.Dropout(dropout_rate))
             prev_size = hidden_size
 
         layers.append(nn.Linear(prev_size, num_classes))

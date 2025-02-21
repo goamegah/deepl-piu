@@ -4,3 +4,7 @@ seaborn
 torch
 wandb
 imbalanced-learn
+pytorch-tabnet
+# pytorch_optimizer
+pytest
+pyarrow

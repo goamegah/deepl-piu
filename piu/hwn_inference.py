@@ -3,28 +3,27 @@ import pandas as pd
 import numpy as np
 import joblib
 import argparse
-from piu.models.mlp import MultiClassNN  # ✅ Vérifie que ton modèle est bien importé
-from piu.models.hwn import HighwayNet  # ✅ Vérifie que ton modèle est bien importé
-from piu.definitions import * # ✅ Vérifie les chemins
+from piu.models.hwn import HighwayNet 
+from piu.definitions import * 
 
-CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mlp-fs-correlation_threshold-balance-class_weight"  # ✅ Vérifie le chemin du modèle
-MODEL_PATH = f"{CHECKPOINT_DIR}/best_model.pth"  # ✅ Vérifie le chemin du modèle
-PREPROCESSOR_PATH = f"{CHECKPOINT_DIR}/preprocessor.pkl"  # ✅ Vérifie le chemin du préprocesseur
-DATA_PATH = f"{TEST_DATA_PATH}"  # ✅ Vérifie le chemin des données de test
 
-def load_model(model_path, input_size, hidden_size, num_classes, num_layers, type="mlp"):
+CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mlp-fs-correlation_threshold-balance-class_weight"
+MODEL_PATH = f"{CHECKPOINT_DIR}/best_model.pth"
+PREPROCESSOR_PATH = f"{CHECKPOINT_DIR}/preprocessor.pkl"
+DATA_PATH = f"{TEST_DATA_PATH}" 
+
+
+def load_model(model_path, input_size, hidden_size, num_classes, num_layers):
     """Charge un modèle PyTorch entraîné."""
-    if type == "mlp":
-        model = MultiClassNN(input_size, hidden_size, num_classes)
-    elif type == "hwn":
-        model = HighwayNet(input_size, hidden_size, num_classes, num_layers)
+  
+    model = HighwayNet(input_size, hidden_size, num_classes, num_layers)
     model.load_state_dict(torch.load(model_path, weights_only=True, map_location=torch.device('cpu')))
     model.eval()
     return model
 
 def align_columns(df, preprocessor):
     """Aligne les colonnes du test set avec celles utilisées pendant l'entraînement."""
-    train_columns = preprocessor.train_features  # ✅ Sauvegardé à l'entraînement
+    train_columns = preprocessor.train_features  # Sauvegardé à l'entraînement
     missing_cols = set(train_columns) - set(df.columns)
     extra_cols = set(df.columns) - set(train_columns)
 
@@ -104,9 +103,9 @@ if __name__ == "__main__":
         input_size=input_size,
         hidden_size=args.hidden_size,
         num_classes=args.num_classes,
-        num_layers=3, 
-        type="mlp"
+        num_layers=3
     )
+    
     # Faire des prédictions par lots
     predictions, probabilities = batch_predict(model, X, batch_size=args.batch_size)
 

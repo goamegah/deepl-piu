@@ -19,7 +19,7 @@ class HighwayNet(nn.Module):
         self.layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
         self.transform_gates = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_layers)])
 
-        self.batch_norms = nn.ModuleList([nn.BatchNorm1d(hidden_size) for _ in range(num_layers)])
+        # self.batch_norms = nn.ModuleList([nn.BatchNorm1d(hidden_size) for _ in range(num_layers)])
         self.dropouts = nn.ModuleList([nn.Dropout(dropout_rate) for _ in range(num_layers)])
 
         self.output_layer = nn.Linear(hidden_size, num_classes)
@@ -29,8 +29,9 @@ class HighwayNet(nn.Module):
 
         for i in range(self.num_layers):
             h = self.layers[i](x)
-            h = self.batch_norms[i](h)
+            # h = self.batch_norms[i](h)
             h = F.relu(h)
+            # h = F.tanh(h)
             h = self.dropouts[i](h)
 
             t = torch.sigmoid(self.transform_gates[i](x))  # Gate de contrôle
