@@ -40,7 +40,9 @@ def main(args):
         k_best=args.k,
         imp=args.imp,
         imb=args.imb,
-        drop_missing_target=True
+        drop_missing_target=True,
+        correlation_threshold=0.9,  # Pour éviter de tout supprimer
+        target_corr_threshold=0.01
     )
     
     X, y, class_weights = preprocessor.fit_transform(train_df)
