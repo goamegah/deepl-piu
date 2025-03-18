@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from piu.data.data_preprocessor import DataPreprocessor
-from piu.models.hwn import HighwayNet
+from piu.data.dataproc import DataPreprocessor
+from piu.models.mlp import MultiClassNN, MultiLayerPerceptron
 from piu.utils.train_utils import train_model, evaluate_model
 from piu.definitions import *
 import wandb
@@ -16,7 +16,7 @@ import wandb
 def main(args):
     wandb.init(
         project="Problematic Internet Use", 
-        name=f"mod={args.model}-act={args.act}-opt={args.optim}-lr={args.lr}-fts={args.fts}-k={args.k}-imb={args.imb}",
+        name=f"mod={args.model}-act={args.act}-opt={args.optim}-lr={args.lr}-sch={args.scheduler}-fts={args.fts}-k={args.k}-imb={args.imb}",
         entity=args.wandb_entity,
         config=vars(args)
     )
@@ -61,14 +61,20 @@ def main(args):
     input_size = X_train.shape[1]
     num_classes = len(torch.unique(y_train))
 
-    model = HighwayNet(
+    
+    hidden_sizes = [8] 
+    model = MultiLayerPerceptron(
         input_size=input_size,
-        hidden_size=8,
-        num_classes=num_classes,
-        num_layers=3,
-        dropout_rate=0.5
+        hidden_sizes=hidden_sizes,
+        num_classes=num_classes
     )
 
+    # model = MultiClassNN(
+    #     input_size=input_size,
+    #     hidden_size=hidden_sizes[0],
+    #     num_classes=num_classes
+    # )
+   
     class_weights_tensor = class_weights.to(torch.float32) if class_weights is not None else None
 
     if class_weights_tensor is not None:
@@ -98,7 +104,7 @@ def main(args):
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10, eta_min=0.0)
 
     # create folder to save model based on the experiment
-    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model}-lr={args.lr}-fts={args.fts}-k={args.k}-imb={args.imb}"
+    CHECKPOINT_DIR = f"{CHECKPOINT_PATH}/mod={args.model}-act={args.act}-opt={args.optim}-lr={args.lr}-sch={args.scheduler}-fts={args.fts}-k={args.k}-imb={args.imb}"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
     train_model(
@@ -111,7 +117,7 @@ def main(args):
         num_epochs=args.epochs, 
         patience=args.patience,
         checkpoint_path=CHECKPOINT_DIR,
-        imbalanced=True if args.imb is not None else False
+        use_balanced_accuracy=True if args.imb is not None else False
     )
     
     test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(
@@ -140,28 +146,28 @@ if __name__ == "__main__":
     # Ajout des arguments principaux
     parser.add_argument('--target_column', type=str, default='sii', help="Name of the target column")
     parser.add_argument(
-        '--fts', type=str, default='k_best', 
-        choices=['k_best', 'pca', 'f_classif', 'chi2', 'f_classif', 'logistic_regression', 
+        '--fts', type=str, default='lasso', 
+        choices=['k_best', 'pca', 'f_classif', 'chi2', 'logistic_regression', 
                  'lasso', 'variance_threshold', 'correlation_threshold', None],
         help="Feature selection method"
     )
-    parser.add_argument('--k', type=int, default=20, help="Number of best features to select")
+    parser.add_argument('--k', type=int, default=40, help="Number of best features to select")
     parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], 
                         help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
-    parser.add_argument('--model', type=str, default='hwn', choices=['hwn'], help="Type of model to train")
+    parser.add_argument('--model', type=str, default='mlp', choices=['mlp'], help="Type of model to train")
     parser.add_argument('--optim', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], 
                         help="Type of optimizer to use")
-    parser.add_argument('--scheduler', type=str, default=None, choices=['plateau', 'step', 'cosine', None],
+    parser.add_argument('--scheduler', type=str, default='cosine', choices=['plateau', 'step', 'cosine', None],
                         help="Type of learning rate scheduler")
     parser.add_argument('--act', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], 
                         help="Activation function for hidden layers")
-    parser.add_argument('--batch_size', type=int, default=8, help="Batch size for training and testing")
+    parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training and testing")
     parser.add_argument('--epochs', type=int, default=300, help="Number of training epochs")
-    parser.add_argument('--lr', type=float, default=0.001, help="Learning rate for optimization") 
+    parser.add_argument('--lr', type=float, default=0.0001, help="Learning rate for optimization") 
     parser.add_argument('--wandb_entity', type=str, required=True, help="Your WandB entity")
     parser.add_argument('--patience', type=int, default=15, help="Number of epochs to wait for early stopping")
-    parser.add_argument('--imb', type=str, default=None, 
+    parser.add_argument('--imb', type=str, default="class_weight", 
                         choices=['class_weight', 'smote', 'random_over', 'random_under', None], 
                         help="Strategy to handle class imbalance")
 

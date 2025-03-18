@@ -1,6 +1,6 @@
 from pytorch_tabnet.tab_model import TabNetClassifier, TabNetRegressor
 import pandas as pd
-from data.data_preprocessor import DataPreprocessor
+from piu.data.dataproc import DataPreprocessor
 from definitions import *
 from sklearn.model_selection import train_test_split
 import numpy as np

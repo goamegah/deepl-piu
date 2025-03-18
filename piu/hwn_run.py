@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from piu.data.data_preprocessor import DataPreprocessor
-from piu.models.mlp import MultiClassNN, MultiLayerPerceptron
+from piu.data.dataproc import DataPreprocessor
+from piu.models.hwn import HighwayNet
 from piu.utils.train_utils import train_model, evaluate_model
 from piu.definitions import *
 import wandb
@@ -28,7 +28,7 @@ def main(args):
     common_columns = list(set(train_df.columns) & set(test_df.columns))
     if args.target_column in train_df.columns:
         common_columns.append(args.target_column)  # S'assurer que la colonne cible est présente dans train_df
-
+    
     print(f" * Colonnes communes utilisées : {common_columns}")
 
     # Garde uniquement les colonnes communes + la cible
@@ -40,8 +40,11 @@ def main(args):
         k_best=args.k,
         imp=args.imp,
         imb=args.imb,
-        drop_missing_target=True
+        drop_missing_target=True,
+        correlation_threshold=0.9,  # Pour éviter de tout supprimer
+        target_corr_threshold=0.01   # Plus permissif pour garder des features utiles
     )
+
     
     X, y, class_weights = preprocessor.fit_transform(train_df)
 
@@ -50,6 +53,9 @@ def main(args):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=(1 - args.train_split), stratify=y, random_state=42
     )
+
+    print(f"🚀 Shape de X_train : {X_train.shape}, X_test : {X_test.shape}")
+    # print(f"🚀 Exemple d'entrée X_train :\n{X_train[:5]}")
 
     print(f" * Répartition des classes dans train : {np.bincount(y_train.numpy())}")
     print(f" * Répartition des classes dans test : {np.bincount(y_test.numpy())}")
@@ -61,20 +67,14 @@ def main(args):
     input_size = X_train.shape[1]
     num_classes = len(torch.unique(y_train))
 
-    
-    hidden_sizes = [8] 
-    model = MultiLayerPerceptron(
+    model = HighwayNet(
         input_size=input_size,
-        hidden_sizes=hidden_sizes,
-        num_classes=num_classes
+        hidden_size=8,
+        num_classes=num_classes,
+        num_layers=1,
+        dropout_rate=0.5
     )
 
-    # model = MultiClassNN(
-    #     input_size=input_size,
-    #     hidden_size=hidden_sizes[0],
-    #     num_classes=num_classes
-    # )
-   
     class_weights_tensor = class_weights.to(torch.float32) if class_weights is not None else None
 
     if class_weights_tensor is not None:
@@ -117,7 +117,7 @@ def main(args):
         num_epochs=args.epochs, 
         patience=args.patience,
         checkpoint_path=CHECKPOINT_DIR,
-        imbalanced=True if args.imb is not None else False
+        use_balanced_accuracy=True if args.imb is not None else False
     )
     
     test_loss, test_accuracy, test_precision, test_recall, test_f1 = evaluate_model(
@@ -146,28 +146,28 @@ if __name__ == "__main__":
     # Ajout des arguments principaux
     parser.add_argument('--target_column', type=str, default='sii', help="Name of the target column")
     parser.add_argument(
-        '--fts', type=str, default='k_best', 
+        '--fts', type=str, default='lasso', 
         choices=['k_best', 'pca', 'f_classif', 'chi2', 'f_classif', 'logistic_regression', 
                  'lasso', 'variance_threshold', 'correlation_threshold', None],
         help="Feature selection method"
     )
-    parser.add_argument('--k', type=int, default=20, help="Number of best features to select")
+    parser.add_argument('--k', type=int, default=40, help="Number of best features to select")
     parser.add_argument('--imp', type=str, default='mean', choices=['median', 'mean', 'knn'], 
                         help="Method for handling missing values")
     parser.add_argument('--train_split', type=float, default=0.8, help="Ratio of training data")
-    parser.add_argument('--model', type=str, default='mlp', choices=['mlp'], help="Type of model to train")
+    parser.add_argument('--model', type=str, default='hwn', choices=['hwn'], help="Type of model to train")
     parser.add_argument('--optim', type=str, default='adam', choices=['adam', 'sgd', 'radam', 'rmsprop'], 
                         help="Type of optimizer to use")
     parser.add_argument('--scheduler', type=str, default=None, choices=['plateau', 'step', 'cosine', None],
                         help="Type of learning rate scheduler")
     parser.add_argument('--act', type=str, default='relu', choices=['relu', 'tanh', 'sigmoid', 'leaky_relu'], 
                         help="Activation function for hidden layers")
-    parser.add_argument('--batch_size', type=int, default=8, help="Batch size for training and testing")
+    parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training and testing")
     parser.add_argument('--epochs', type=int, default=300, help="Number of training epochs")
-    parser.add_argument('--lr', type=float, default=0.001, help="Learning rate for optimization") 
+    parser.add_argument('--lr', type=float, default=0.0001, help="Learning rate for optimization") 
     parser.add_argument('--wandb_entity', type=str, required=True, help="Your WandB entity")
     parser.add_argument('--patience', type=int, default=15, help="Number of epochs to wait for early stopping")
-    parser.add_argument('--imb', type=str, default=None, 
+    parser.add_argument('--imb', type=str, default="smote", 
                         choices=['class_weight', 'smote', 'random_over', 'random_under', None], 
                         help="Strategy to handle class imbalance")
 
