@@ -1,6 +1,5 @@
 import torch.optim as optim
 
-
 def get_optimizer(model, optimizer, learning_rate):
     if optimizer == "adam":
         return optim.Adam(model.parameters(), lr=learning_rate)
@@ -20,5 +19,7 @@ def get_scheduler(optimizer, scheduler):
         return optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
     elif scheduler == "cosine":
         return optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    elif scheduler == "plateau":
+        return optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, factor=0.5, verbose=True)
     else:
         raise ValueError("Scheduler inconnu.")

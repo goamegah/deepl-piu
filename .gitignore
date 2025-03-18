@@ -174,8 +174,4 @@ dataset/
 wandb/
 
 # local
-lstm_copy.py
-lstm_copy
-lstm_utils_copy.py
-data_preprocessor_v2.py
-lstm_dataset_copy.py
+scripts/
